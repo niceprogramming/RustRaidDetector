@@ -22,16 +22,19 @@ namespace RustRaidDetector.UI
             this.WhenActivated(d =>
             {
                 d(this.OneWayBind(ViewModel, vm => vm.Devices, window => window.DevicesComboBox.ItemsSource));
+                d(this.OneWayBind(ViewModel, vm => vm.PeakVolume, window => window.PeakTextBlock.Text));
                 d(this.Bind(ViewModel, vm => vm.SelectedDevice, window => window.DevicesComboBox.SelectedItem));
+                d(this.Bind(ViewModel, vm => vm.PeakOffset, window => window.PeakSlider.Value));
                 d(this.OneWayBind(ViewModel, vm => vm.AudioMeters,
                     window => window.AudioMeterControl.ItemsSource));
                 d(this.BindCommand(ViewModel, vm => vm.StartVolumeCapture, window => window.StartButton));
                 d(this.BindCommand(ViewModel, vm => vm.StopVolumeCapture, window => window.StopButton));
+                d(this.BindCommand(ViewModel, vm => vm.PeakVolumeCapture, window => window.AmbientButton));
             });
 
             this.Events().Loaded.Select(x => Unit.Default).InvokeCommand(ViewModel.UpdateDevices);
         }
-        
+
 
         public MainWindowViewModel ViewModel
         {

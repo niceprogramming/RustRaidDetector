@@ -14,18 +14,14 @@ namespace RustRaidDetector.UI
 
         public string Name
         {
-            get { return _name; }
-            set { this.RaiseAndSetIfChanged(ref _name, value); }
+            get => _name;
+            set => this.RaiseAndSetIfChanged(ref _name, value);
         }
 
         public float Value
         {
-            get { return _value; }
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _value, value);
-            }
-
+            get => _value;
+            set => this.RaiseAndSetIfChanged(ref _value, value);
         }
     }
 }

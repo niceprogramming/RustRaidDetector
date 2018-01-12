@@ -16,23 +16,28 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-<StackPanel>
-    <ComboBox x:Name="DevicesComboBox"
-              Margin="10"
-              materialDesign:HintAssist.Hint="Select Playback Device"
+        <StackPanel>
+            <ComboBox x:Name="DevicesComboBox"
+                      Margin="10"
+                      materialDesign:HintAssist.Hint="Select Playback Device"
 
-              DisplayMemberPath="FriendlyName"
-              Style="{StaticResource MaterialDesignFloatingHintComboBox}" />
-    <Button Margin="10" x:Name="AmbientButton">Ambient</Button>
-    <Button Margin="10" x:Name="StartButton">Start</Button>
-    <Button Margin="10" x:Name="StopButton">Stop</Button>
-    <TextBlock Margin="10 10 10 0" Text="Volume Offset"></TextBlock>
-    <Slider Minimum="0" Maximum="100" Style="{StaticResource MaterialDesignDiscreteSlider}" 
-            ToolTip="MaterialDesignDiscreteSlider"
-           
-            Margin="5"/>
+                      DisplayMemberPath="FriendlyName"
+                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" />
+            <Button Margin="10" x:Name="AmbientButton">Peak</Button>
+            <Button Margin="10" x:Name="StartButton">Start</Button>
+            <Button Margin="10" x:Name="StopButton">Stop</Button>
+            <TextBlock Margin="10 10 10 0" Text="Volume Offset" />
+            <Slider x:Name="PeakSlider" Minimum="0" Maximum="100" Style="{StaticResource MaterialDesignDiscreteSlider}"
+                    ToolTip="MaterialDesignDiscreteSlider"
+
+                    Margin="5" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="10 10 0 0" Text="Peak Volume: " />
+                <TextBlock x:Name="PeakTextBlock" Margin="0 10 0 0" />
+            </StackPanel>
+
         </StackPanel>
-     
+
         <!--        <ProgressBar Grid.Column="1" Orientation="Vertical" Width="200" Height="25"  />-->
         <ItemsControl Grid.Column="1" x:Name="AudioMeterControl">
             <ItemsControl.ItemsPanel>

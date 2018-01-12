@@ -65,8 +65,8 @@
                         Value="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto" />
 
                 <Setter Property="GlowBrush" Value="{DynamicResource AccentColorBrush}" />
-                <Setter Property="Height" Value=" 345" />
-                <Setter Property="MinHeight" Value="345" />
+                <Setter Property="Height" Value=" 375" />
+                <Setter Property="MinHeight" Value="375" />
                 <Setter Property="MinWidth" Value="560" />
 
 

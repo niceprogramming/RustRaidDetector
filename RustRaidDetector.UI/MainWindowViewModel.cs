@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using CSCore.CoreAudioAPI;
+using CSCore.Streams.Effects;
 using ReactiveUI;
 
 namespace RustRaidDetector.UI
@@ -12,40 +13,51 @@ namespace RustRaidDetector.UI
     public class MainWindowViewModel : ReactiveObject
     {
         private readonly MMDeviceEnumerator _deviceEnumerator;
-        private VolumeCaptureService _meter;
-        private ObservableCollection<MMDevice> _devices;
         private readonly MMNotificationClient _notificationClient;
+        private ObservableCollection<MMDevice> _devices;
+        private VolumeCaptureService _meter;
         private MMDevice _selectedDevice;
 
         private List<float> test = new List<float>();
-    //    private ObservableAsPropertyHelper<ObservableCollection<AudioMeterModel>> _audioMeters;
+
+        private float _peakVolume;
+
+        private double _peakOffset;
+        //    private ObservableAsPropertyHelper<ObservableCollection<AudioMeterModel>> _audioMeters;
 
         public MainWindowViewModel()
         {
             _deviceEnumerator = new MMDeviceEnumerator();
             _notificationClient = new MMNotificationClient(_deviceEnumerator);
-           
-            Meter.ItemsUpdated.ObserveOn(RxApp.MainThreadScheduler).Subscribe(x =>
+
+            CaptureService.ItemsUpdated.ObserveOn(RxApp.MainThreadScheduler).Subscribe(x =>
             {
-                if ( AudioMeters.Count == 0)
+             
+                if (AudioMeters.Count == 0)
                 {
                     foreach (var audioMeterModel in x)
                     {
                         AudioMeters.Add(audioMeterModel);
                     }
+
                     return;
                 }
-               test.Add(x[0].Value);
-                for (int i = 0; i < x.Count; i++)
+
+                if (PeakVolume > 0)
+                {
+                    if (x[0].Value > PeakVolume + PeakOffset)
+                    {
+                        Console.WriteLine("ALERT");
+                    }
+                }
+                 test.Add(x[0].Value);
+                for (var i = 0; i < x.Count; i++)
                 {
                     AudioMeters[i] = x[i];
                 }
-                
-
             });
-            
-           
-      
+
+
             UpdateDevices = ReactiveCommand.Create(() =>
             {
                 Devices.Clear();
@@ -55,16 +67,21 @@ namespace RustRaidDetector.UI
                 }
             });
 
-            StartVolumeCapture = ReactiveCommand.Create(() =>
-            {
-                Meter.Start();
-            },outputScheduler: RxApp.MainThreadScheduler);
-            StopVolumeCapture = ReactiveCommand.Create(() =>
-            {
-                Meter.Stop();
-              
-            },outputScheduler: RxApp.MainThreadScheduler);
-
+            StartVolumeCapture =
+                ReactiveCommand.Create(() => { CaptureService.Start(); }, outputScheduler: RxApp.MainThreadScheduler);
+            StopVolumeCapture =
+                ReactiveCommand.Create(() => { CaptureService.Stop(); }, outputScheduler: RxApp.MainThreadScheduler);
+            PeakVolumeCapture =
+                ReactiveCommand.CreateFromObservable<Unit, Unit>(_ =>
+                {
+                    CaptureService.Start();
+                    test.Clear();
+                    return Observable.Return(Unit.Default)
+                        .Delay(TimeSpan.FromSeconds(10))
+                        .Do(x =>CaptureService.Stop());
+                });
+            PeakVolumeCapture.Subscribe(x => PeakVolume = test.Max());
+            PeakVolumeCapture.ThrownExceptions.Subscribe(Console.WriteLine);
             Observable.FromEventPattern<DeviceNotificationEventArgs>(
                     x => _notificationClient.DeviceAdded += x,
                     x => _notificationClient.DeviceAdded -= x).Merge(
@@ -86,21 +103,37 @@ namespace RustRaidDetector.UI
 
         public ObservableCollection<MMDevice> Devices => _devices ?? (_devices = new ObservableCollection<MMDevice>());
 
-        public VolumeCaptureService Meter => _meter ?? (_meter = new VolumeCaptureService(TimeSpan.FromMilliseconds(10)));
-       
+        public VolumeCaptureService CaptureService =>
+            _meter ?? (_meter = new VolumeCaptureService(TimeSpan.FromMilliseconds(10)));
+
         public MMDevice SelectedDevice
         {
             get => _selectedDevice;
             set
             {
-                Meter.Endpoint = value;
+                CaptureService.Endpoint = value;
                 this.RaiseAndSetIfChanged(ref _selectedDevice, value);
             }
         }
 
-        public ObservableCollection<AudioMeterModel> AudioMeters { get; set; } = new ObservableCollection<AudioMeterModel>();
+        public double PeakOffset
+        {
+            get { return _peakOffset; }
+            set {this.RaiseAndSetIfChanged(ref _peakOffset, value); }
+        }
+
+        public float PeakVolume
+        {
+            get => _peakVolume;
+            set => this.RaiseAndSetIfChanged(ref _peakVolume,value);
+        }
+
+        public ObservableCollection<AudioMeterModel> AudioMeters { get; set; } =
+            new ObservableCollection<AudioMeterModel>();
+
         public ReactiveCommand UpdateDevices { get; }
         public ReactiveCommand StartVolumeCapture { get; }
         public ReactiveCommand StopVolumeCapture { get; }
+        public ReactiveCommand<Unit, Unit> PeakVolumeCapture { get; }
     }
 }

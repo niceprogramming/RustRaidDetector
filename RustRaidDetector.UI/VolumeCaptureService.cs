@@ -2,32 +2,29 @@
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Windows.Threading;
 using CSCore.CoreAudioAPI;
 using CSCore.SoundIn;
-using ReactiveUI;
 
 namespace RustRaidDetector.UI
 {
     public class VolumeCaptureService : IDisposable
     {
+        private readonly Subject<List<AudioMeterModel>> _itemsUpdated = new Subject<List<AudioMeterModel>>();
         private readonly TimeSpan _updateFrequency;
-       
+
         private AudioMeterInformation _audioMeterInformation;
-        private bool isCapturing;
         private WasapiCapture _dummyCapture;
 
         private MMDevice _endpoint;
         private List<AudioMeterModel> _items;
-        private readonly Subject<List<AudioMeterModel>> _itemsUpdated = new Subject<List<AudioMeterModel>>();
-
-        public IObservable<List<AudioMeterModel>> ItemsUpdated => this._itemsUpdated.AsObservable();
+        private bool isCapturing;
 
         public VolumeCaptureService(TimeSpan updateFrequency)
         {
             _updateFrequency = updateFrequency;
-           
         }
+
+        public IObservable<List<AudioMeterModel>> ItemsUpdated => _itemsUpdated.AsObservable();
 
         public MMDevice Endpoint
         {
@@ -41,8 +38,18 @@ namespace RustRaidDetector.UI
                 {
                     _audioMeterInformation = AudioMeterInformation.FromDevice(_endpoint);
                 }
+
                 UpdateItems();
                 _items = null;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_dummyCapture != null)
+            {
+                _dummyCapture.Dispose();
+                _dummyCapture = null;
             }
         }
 
@@ -52,20 +59,12 @@ namespace RustRaidDetector.UI
             Observable.Interval(_updateFrequency)
                 .TakeWhile(x => isCapturing)
                 .Subscribe(_ => UpdateItems());
-
         }
+
         public void Stop()
         {
             isCapturing = false;
-            _items.Clear();
-        }
-        public void Dispose()
-        {
-            if (_dummyCapture != null)
-            {
-                _dummyCapture.Dispose();
-                _dummyCapture = null;
-            }
+           // _items.Clear();
         }
 
         private void UpdateItems()
@@ -78,10 +77,10 @@ namespace RustRaidDetector.UI
             CreateItems();
 
             var values = _audioMeterInformation.GetChannelsPeakValues();
-            _items[0].Value = _audioMeterInformation.PeakValue *100;
+            _items[0].Value = _audioMeterInformation.PeakValue * 100;
             for (var i = 0; i < values.Length; i++)
             {
-                _items[i + 1].Value = values[i] *100;
+                _items[i + 1].Value = values[i] * 100;
             }
 
             try
@@ -91,9 +90,8 @@ namespace RustRaidDetector.UI
             catch (Exception e)
             {
                 Console.WriteLine(e);
-               _itemsUpdated.OnError(e);
+                _itemsUpdated.OnError(e);
             }
-         
         }
 
         private void CreateItems()
