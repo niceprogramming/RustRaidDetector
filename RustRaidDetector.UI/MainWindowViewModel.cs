@@ -1,30 +1,51 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Windows.Threading;
 using CSCore.CoreAudioAPI;
-using CSCore.SoundIn;
-using CSCore.Streams.Effects;
 using ReactiveUI;
 
 namespace RustRaidDetector.UI
 {
     public class MainWindowViewModel : ReactiveObject
     {
-        private ObservableCollection<MMDevice> _devices;
-        private MMDevice _selectedDevice;
         private readonly MMDeviceEnumerator _deviceEnumerator;
-        private MMNotificationClient _notificationClient;
-        private AudioMeterModel _audioMeter;
+        private VolumeCaptureService _meter;
+        private ObservableCollection<MMDevice> _devices;
+        private readonly MMNotificationClient _notificationClient;
+        private MMDevice _selectedDevice;
+
+        private List<float> test = new List<float>();
+    //    private ObservableAsPropertyHelper<ObservableCollection<AudioMeterModel>> _audioMeters;
 
         public MainWindowViewModel()
         {
             _deviceEnumerator = new MMDeviceEnumerator();
             _notificationClient = new MMNotificationClient(_deviceEnumerator);
+           
+            Meter.ItemsUpdated.ObserveOn(RxApp.MainThreadScheduler).Subscribe(x =>
+            {
+                if ( AudioMeters.Count == 0)
+                {
+                    foreach (var audioMeterModel in x)
+                    {
+                        AudioMeters.Add(audioMeterModel);
+                    }
+                    return;
+                }
+               test.Add(x[0].Value);
+                for (int i = 0; i < x.Count; i++)
+                {
+                    AudioMeters[i] = x[i];
+                }
+                
 
-          
-
+            });
+            
+           
+      
             UpdateDevices = ReactiveCommand.Create(() =>
             {
                 Devices.Clear();
@@ -32,16 +53,21 @@ namespace RustRaidDetector.UI
                 {
                     Devices.Add(device);
                 }
-
-               
-
             });
 
-            
-            Observable.Merge(
-                    Observable.FromEventPattern<DeviceNotificationEventArgs>(
-                        x => _notificationClient.DeviceAdded += x,
-                        x => _notificationClient.DeviceAdded -= x),
+            StartVolumeCapture = ReactiveCommand.Create(() =>
+            {
+                Meter.Start();
+            },outputScheduler: RxApp.MainThreadScheduler);
+            StopVolumeCapture = ReactiveCommand.Create(() =>
+            {
+                Meter.Stop();
+              
+            },outputScheduler: RxApp.MainThreadScheduler);
+
+            Observable.FromEventPattern<DeviceNotificationEventArgs>(
+                    x => _notificationClient.DeviceAdded += x,
+                    x => _notificationClient.DeviceAdded -= x).Merge(
                     Observable.FromEventPattern<DeviceNotificationEventArgs>(
                         y => _notificationClient.DeviceRemoved += y,
                         y => _notificationClient.DeviceRemoved -= y))
@@ -55,155 +81,26 @@ namespace RustRaidDetector.UI
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Select(x => Unit.Default)
                 .InvokeCommand(UpdateDevices);
-
         }
 
-       
-   
 
         public ObservableCollection<MMDevice> Devices => _devices ?? (_devices = new ObservableCollection<MMDevice>());
-        public AudioMeterModel AudioMeter
-        {
-            get { return _audioMeter ?? (_audioMeter = new AudioMeterModel()); }
-        }
+
+        public VolumeCaptureService Meter => _meter ?? (_meter = new VolumeCaptureService(TimeSpan.FromMilliseconds(10)));
+       
         public MMDevice SelectedDevice
         {
-            get { return _selectedDevice; }
+            get => _selectedDevice;
             set
             {
-                AudioMeter.Endpoint = value;
-                this.RaiseAndSetIfChanged(ref _selectedDevice,value);
-                
+                Meter.Endpoint = value;
+                this.RaiseAndSetIfChanged(ref _selectedDevice, value);
             }
         }
 
-        public ReactiveCommand UpdateDevices { get;}
+        public ObservableCollection<AudioMeterModel> AudioMeters { get; set; } = new ObservableCollection<AudioMeterModel>();
+        public ReactiveCommand UpdateDevices { get; }
+        public ReactiveCommand StartVolumeCapture { get; }
+        public ReactiveCommand StopVolumeCapture { get; }
     }
-    public sealed class AudioMeterModel : ReactiveObject, IDisposable
-    {
-        private AudioMeterInformation _audioMeterInformation;
-
-        private MMDevice _endpoint;
-        private ObservableCollection<AudioMeterItem> _items;
-        private readonly DispatcherTimer _timer;
-
-        private WasapiCapture _dummyCapture;
-
-        public MMDevice Endpoint
-        {
-            get { return _endpoint; }
-            set
-            {
-                _endpoint = value;
-                EnableCaptureEndpoint();
-
-                if (_endpoint != null)
-                {
-                    _audioMeterInformation = AudioMeterInformation.FromDevice(_endpoint);
-                }
-
-                Items = null;
-            }
-        }
-
-        public ObservableCollection<AudioMeterItem> Items
-        {
-            get { return _items; }
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _items,value);
-            }
-        }
-
-        public AudioMeterModel()
-        {
-           // var timer = Observable.t
-            _timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(30),
-                IsEnabled = true
-            };
-            _timer.Tick += (s, e) => UpdateItems();
-        }
-
-        private void UpdateItems()
-        {
-            if (_audioMeterInformation == null)
-                return;
-
-            CreateItems();
-
-            var values = _audioMeterInformation.GetChannelsPeakValues();
-            _items[0].Value = _audioMeterInformation.PeakValue;
-            for (int i = 0; i < values.Length; i++)
-            {
-                _items[i + 1].Value = values[i];
-            }
-        }
-
-        private void CreateItems()
-        {
-            if (Items == null)
-            {
-                Items = new ObservableCollection<AudioMeterItem> { new AudioMeterItem("MasterPeakValue") };
-                for (int i = 0; i < _audioMeterInformation.MeteringChannelCount; i++)
-                {
-                    Items.Add(new AudioMeterItem($"Channel {i + 1}"));
-                }
-            }
-        }
-
-        private void EnableCaptureEndpoint()
-        {
-            if (_dummyCapture != null)
-            {
-                _dummyCapture.Dispose();
-                _dummyCapture = null;
-            }
-
-            if (Endpoint != null && Endpoint.DataFlow == DataFlow.Capture)
-            {
-                _dummyCapture = new WasapiCapture(true, AudioClientShareMode.Shared, 250) { Device = Endpoint };
-                _dummyCapture.Initialize();
-                _dummyCapture.Start();
-            }
-        }
-
-        public class AudioMeterItem : ReactiveObject
-        {
-            private string _name;
-            private float _value;
-
-            public AudioMeterItem(string name)
-            {
-                Name = name;
-            }
-
-            public string Name
-            {
-                get { return _name; }
-                set { this.RaiseAndSetIfChanged(ref _name, value); }
-            }
-
-            public float Value
-            {
-                get { return _value; }
-                set
-                {
-                    this.RaiseAndSetIfChanged(ref _value, value);
-                }
-
-            }
-        }
-
-        public void Dispose()
-        {
-            if (_dummyCapture != null)
-            {
-                _dummyCapture.Dispose();
-                _dummyCapture = null;
-            }
-        }
-    }
-
 }

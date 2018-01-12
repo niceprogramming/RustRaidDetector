@@ -1,30 +1,39 @@
 ﻿<controls:MetroWindow x:Class="RustRaidDetector.UI.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:RustRaidDetector.UI"
-        xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        mc:Ignorable="d"
-        Style="{StaticResource BaseWindowStyle}">
+                      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                      xmlns:local="clr-namespace:RustRaidDetector.UI"
+                      xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+                      xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                      mc:Ignorable="d"
+                      Style="{StaticResource BaseWindowStyle}">
 
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
+<StackPanel>
+    <ComboBox x:Name="DevicesComboBox"
+              Margin="10"
+              materialDesign:HintAssist.Hint="Select Playback Device"
 
-
-        <ComboBox  x:Name="DevicesComboBox"
-                   Margin="10"
-                   materialDesign:HintAssist.Hint="Select Playback Device"
-                   
-                   DisplayMemberPath="FriendlyName"
-                   Style="{StaticResource MaterialDesignFloatingHintComboBox}"/>
-<!--        <ProgressBar Grid.Column="1" Orientation="Vertical" Width="200" Height="25"  />-->
+              DisplayMemberPath="FriendlyName"
+              Style="{StaticResource MaterialDesignFloatingHintComboBox}" />
+    <Button Margin="10" x:Name="AmbientButton">Ambient</Button>
+    <Button Margin="10" x:Name="StartButton">Start</Button>
+    <Button Margin="10" x:Name="StopButton">Stop</Button>
+    <TextBlock Margin="10 10 10 0" Text="Volume Offset"></TextBlock>
+    <Slider Minimum="0" Maximum="100" Style="{StaticResource MaterialDesignDiscreteSlider}" 
+            ToolTip="MaterialDesignDiscreteSlider"
+           
+            Margin="5"/>
+        </StackPanel>
+     
+        <!--        <ProgressBar Grid.Column="1" Orientation="Vertical" Width="200" Height="25"  />-->
         <ItemsControl Grid.Column="1" x:Name="AudioMeterControl">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -35,12 +44,12 @@
                 <DataTemplate>
                     <DockPanel Margin="0,5,10,5">
                         <TextBlock DockPanel.Dock="Bottom"
-                                   TextAlignment="Center" 
-                                   Text="{Binding Path=Name}"/>
-                        <ProgressBar Orientation="Vertical" 
+                                   TextAlignment="Center"
+                                   Text="{Binding Path=Name}" />
+                        <ProgressBar Orientation="Vertical"
                                      HorizontalAlignment="Center"
-                                     Value="{Binding Value}" 
-                                     Maximum="1" 
+                                     Value="{Binding Value}"
+                                     Maximum="100"
                                      Height="25" />
                     </DockPanel>
                 </DataTemplate>
@@ -49,4 +58,3 @@
     </Grid>
 
 </controls:MetroWindow>
-
