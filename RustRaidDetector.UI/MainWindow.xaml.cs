@@ -37,6 +37,7 @@ namespace RustRaidDetector.UI
                 {
                     d(this.OneWayBind(ViewModel, vm => vm.Devices, window => window.DevicesComboBox.ItemsSource));
                     d(this.Bind(ViewModel, vm => vm.SelectedDevice, window => window.DevicesComboBox.SelectedItem));
+                    d(this.OneWayBind(ViewModel, vm => vm.AudioMeter.Items, window => window.AudioMeterControl.ItemsSource));
                 });
 
             this.Events().Loaded.Select(x => Unit.Default).InvokeCommand(ViewModel.UpdateDevices);

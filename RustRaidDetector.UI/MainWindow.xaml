@@ -5,21 +5,48 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RustRaidDetector.UI"
         xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         Style="{StaticResource BaseWindowStyle}">
-    
-  
+
+
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <ComboBox x:Name="DevicesComboBox"
-                  DisplayMemberPath="FriendlyName"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+
+
+        <ComboBox  x:Name="DevicesComboBox"
+                   Margin="10"
+                   materialDesign:HintAssist.Hint="Select Playback Device"
+                   
+                   DisplayMemberPath="FriendlyName"
+                   Style="{StaticResource MaterialDesignFloatingHintComboBox}"/>
+<!--        <ProgressBar Grid.Column="1" Orientation="Vertical" Width="200" Height="25"  />-->
+        <ItemsControl Grid.Column="1" x:Name="AudioMeterControl">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel Margin="0,5,10,5">
+                        <TextBlock DockPanel.Dock="Bottom"
+                                   TextAlignment="Center" 
+                                   Text="{Binding Path=Name}"/>
+                        <ProgressBar Orientation="Vertical" 
+                                     HorizontalAlignment="Center"
+                                     Value="{Binding Value}" 
+                                     Maximum="1" 
+                                     Height="25" />
+                    </DockPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
+
 </controls:MetroWindow>
 
